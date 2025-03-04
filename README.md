@@ -104,7 +104,7 @@ python -m unittest test_pykm3_codec.py
 
 ## License
 
-MIT
+GNU GENERAL PUBLIC LICENSE
 
 ## Acknowledgements
 

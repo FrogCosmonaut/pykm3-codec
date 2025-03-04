@@ -1,4 +1,4 @@
-from character_maps import (
+from .character_maps import (
     CharacterMap,
     WesternCharacterMap,
     JapaneseCharacterMap
@@ -17,7 +17,7 @@ class PokeTextCodec:
         """
         self.char_map = char_map
     
-    def encode(self, text: str) -> bytes:
+    def encode(self, text: str, errors: str = 'strict') -> bytes:
         """
         Encode a string into Pokémon text format.
         
@@ -28,7 +28,7 @@ class PokeTextCodec:
             The encoded bytes
         """
         result = bytearray()
-        
+
         for char in text:
             if char == '\n':
                 result.append(self.char_map.LINE_BREAK)
@@ -42,16 +42,7 @@ class PokeTextCodec:
         result.append(self.char_map.TERMINATOR)
         return bytes(result)
     
-    def decode(self, data: bytes) -> str:
-        """
-        Decode Pokémon text format to a string.
-        
-        Args:
-            data: The encoded bytes
-            
-        Returns:
-            The decoded string
-        """
+    def decode(self, data: bytes, errors: str = 'strict') -> str:
         result = []
         i = 0
         
@@ -59,17 +50,25 @@ class PokeTextCodec:
             byte = data[i]
             
             if byte == self.char_map.TERMINATOR:
-                break
+                break  # Stop at terminator
             elif byte == self.char_map.LINE_BREAK:
                 result.append('\n')
             elif byte in self.char_map.byte_to_char:
                 result.append(self.char_map.byte_to_char[byte])
             else:
-                # If byte not recognized, use '?' as fallback
-                result.append('?')
+                # Handle unknown bytes according to the errors parameter
+                if errors == 'strict':
+                    raise UnicodeDecodeError('pykm3', data, i, i+1, f"Invalid byte: {byte}")
+                elif errors == 'replace':
+                    result.append('?')
+                elif errors == 'ignore':
+                    pass  # Skip this byte
+                else:
+                    # Default fallback
+                    result.append('?')
             
             i += 1
-            
+                
         return ''.join(result)
 
 
