@@ -21,8 +21,8 @@ from .pk_codecs import (
 from .registry import (
     pykm3_encode,
     pykm3_decode,
-    StreamWriter,
-    StreamReader,
+    PokeStreamReader,
+    PokeStreamWriter,
     pykm3_search_function
 )
 
@@ -40,8 +40,8 @@ __all__ = [
     'JapanesePokeTextCodec',
     'pykm3_encode',
     'pykm3_decode',
-    'StreamWriter',
-    'StreamReader',
+    'PokeStreamReader',
+    'PokeStreamWriter',
     'pykm3_search_function'
 ]
 

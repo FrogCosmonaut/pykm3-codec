@@ -7,7 +7,6 @@ A Python codec for encoding and decoding text in Pokémon Generation III games (
 - Full support for Western and Japanese character sets
 - Implementation as a standard Python codec
 - Automatic encoding detection
-- Comprehensive test suite
 
 ## Installation
 
@@ -17,14 +16,10 @@ pip install pykm3-codec
 
 ## Usage
 
-### Basic Usage
-
+### Basic Usage - Automatic language detection
 ```python
 import codecs
 import pykm3_codec
-
-# Register the codec
-codecs.register(pykm3_codec.pykm3_search_function)
 
 # Western text
 text = "PIKACHU used THUNDERBOLT!"
@@ -34,14 +29,33 @@ print(f"Original: {text}")
 print(f"Encoded (hex): {encoded.hex(' ')}")
 print(f"Decoded: {decoded}")
 
-# Japanese text (use @jp: prefix)
-jp_text = "@jp:ピカチュウの　１０まんボルト！"
+# Japanese text - automatic detection
+jp_text = "ピカチュウの　１０まんボルト！"
 encoded = jp_text.encode('pykm3')
 decoded = encoded.decode('pykm3')
 print(f"Original: {jp_text}")
 print(f"Encoded (hex): {encoded.hex(' ')}")
 print(f"Decoded: {decoded}")
 ```
+
+**⚠ WARNING**
+For decoding to japanese is recommended to use directly the "pykm3jap" codec,
+in most cases the automatic detection works but it can fail in some edge cases,
+specially when encoding short words/bytearrays.
+```python
+# Automatic language detection won't work
+# because all byte values are also in the western dictionary
+encoded = b"\x0B\x08\x27" # さくら (sakura 🌸)
+decoded = encoded.decode('pykm3') # Output: 'ÎËú'
+decoded = encoded.decode('pykm3jap') # Output: 'さくら'
+
+# This works because byte 4A is not in the western dictionary
+encoded = b"\x0B\x08\x27\xE2\x4A" # さくらんぼ (sakuranbo 🍒)
+decoded = encoded.decode('pykm3') # Output: 'さくらｎぼ'
+```
+For example: in bytes to japanese: "A2 A3 A4 A5" == "１２３４" _(fullwidth numbers)_
+in bytes to western: "A2 A3 A4 A5" == "1234"
+and "1234" != "１２３４"
 
 ### Using the Codec Directly
 
@@ -64,8 +78,8 @@ decoded = japanese_codec.decode(encoded)
 ### Reading/Writing Files
 
 ```python
+import pykm3_codec
 import codecs
-codecs.register(pykm3_codec.pykm3_search_function)
 
 # Write game script to a file
 with codecs.open('script.bin', 'w', 'pykm3') as f:
@@ -94,18 +108,11 @@ with codecs.open('script.bin', 'r', 'pykm3') as f:
 - Full-width numbers and punctuation
 - Full-width Latin alphabet
 
-## Development
-
-### Running Tests
-
-```bash
-python -m unittest test_pykm3_codec.py
-```
-
 ## License
 
-GNU GENERAL PUBLIC LICENSE
+GNU GENERAL PUBLIC LICENSE Version 3
 
 ## Acknowledgements
 
 This codec was inspired by the documentation and research on Gen III Pokémon text format by various ROM hacking communities.
+Specially bulbapedia: https://bulbapedia.bulbagarden.net/wiki/Character_encoding_(Generation_III)
