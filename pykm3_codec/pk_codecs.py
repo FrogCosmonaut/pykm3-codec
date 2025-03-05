@@ -17,32 +17,59 @@ class PokeTextCodec:
         """
         self.char_map = char_map
     
-    def encode(self, text: str, errors: str = 'strict') -> bytes:
+    def encode(self, text: str, errors: str = 'replace') -> bytes:
         """
         Encode a string into Pokémon text format.
-        
+
         Args:
-            text: The string to encode
-            
+            text (str): The string to encode.
+            errors (str, optional): Error handling strategy. 
+                - 'strict': Raises an error on invalid characters.
+                - 'replace': Replaces invalid characters with a space.
+                - 'ignore': Skips invalid characters.
+                Defaults to 'replace'.
+
         Returns:
-            The encoded bytes
+            bytes: The encoded Pokémon text as a byte sequence.
         """
         result = bytearray()
 
-        for char in text:
+        for i, char in enumerate(text):
             if char == '\n':
                 result.append(self.char_map.LINE_BREAK)
             elif char in self.char_map.char_to_byte:
                 result.append(self.char_map.char_to_byte[char])
             else:
-                # If character not found, use space as fallback
-                result.append(self.char_map.char_to_byte.get(' ', 0x00))
+                # Handle unknown chars according to the errors parameter
+                if errors == 'strict':
+                    raise UnicodeEncodeError('pykm3', text, i, i+1, f"Invalid char: {char}")
+                elif errors == 'replace':
+                    result.append(self.char_map.char_to_byte.get(' ', 0x00))
+                elif errors == 'ignore':
+                    pass  # Skip this char
+                else:
+                    # Default fallback
+                    result.append(self.char_map.char_to_byte.get(' ', 0x00))
                 
         # Add terminator
         result.append(self.char_map.TERMINATOR)
         return bytes(result)
     
     def decode(self, data: bytes, errors: str = 'strict') -> str:
+        """
+        Decode a Pokémon text format byte sequence back into a string.
+
+        Args:
+            data (bytes): The encoded byte sequence.
+            errors (str, optional): Error handling strategy.
+                - 'strict': Raises an error on invalid bytes.
+                - 'replace': Replaces invalid bytes with '?'.
+                - 'ignore': Skips invalid bytes.
+                Defaults to 'strict'.
+
+        Returns:
+            str: The decoded string.
+        """
         result = []
         i = 0
         
