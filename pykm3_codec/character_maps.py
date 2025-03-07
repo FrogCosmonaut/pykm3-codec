@@ -3,20 +3,20 @@ from typing import Dict
 
 class CharacterMap:
     """Base class for character mappings."""
-    
+
     # Control characters
     TERMINATOR = 0xFF
     LINE_BREAK = 0xFE
-    
+
     def __init__(self):
         """Initialize the character maps."""
         self.byte_to_char = self._get_byte_to_char_map()
-        self.char_to_byte = {char: code for code, char in self.byte_to_char.items()}
-    
+        self.char_to_byte = {k: v for v, k in self.byte_to_char.items()}
+
     def _get_byte_to_char_map(self) -> Dict[int, str]:
         """
         Get the mapping from bytes to characters.
-        
+
         Returns:
             Dictionary mapping byte values to characters
         """
@@ -25,14 +25,16 @@ class CharacterMap:
 
 class WesternCharacterMap(CharacterMap):
     """Character map for Western languages."""
-    
+
     def _get_byte_to_char_map(self) -> Dict[int, str]:
         """
         Get the mapping from bytes to Western characters.
-        
+
         Returns:
             Dictionary mapping byte values to Western characters
         """
+
+        # fmt: off
         return {
             0x00: " ",      # Space
             # Uppercase letters
@@ -40,7 +42,7 @@ class WesternCharacterMap(CharacterMap):
             0xC0: "F", 0xC1: "G", 0xC2: "H", 0xC3: "I", 0xC4: "J",
             0xC5: "K", 0xC6: "L", 0xC7: "M", 0xC8: "N", 0xC9: "O",
             0xCA: "P", 0xCB: "Q", 0xCC: "R", 0xCD: "S", 0xCE: "T",
-            0xCF: "U", 0xD0: "V", 0xD1: "W", 0xD2: "X", 0xD3: "Y", 
+            0xCF: "U", 0xD0: "V", 0xD1: "W", 0xD2: "X", 0xD3: "Y",
             0xD4: "Z",
             # Lowercase letters
             0xD5: "a", 0xD6: "b", 0xD7: "c", 0xD8: "d", 0xD9: "e",
@@ -62,7 +64,7 @@ class WesternCharacterMap(CharacterMap):
             0x85: "<", 0x86: ">", 0xAF: "･", 0xB7: "$", 0xEF: "►",
             # Asterisks
             0x7D: "*", 0x7D: "*", 0x7E: "*", 0x7F: "*", 0x80: "*",
-            0x81: "*", 0x82: "*", 0x83: "*", 
+            0x81: "*", 0x82: "*", 0x83: "*",
             # Accented characters
             0xF1: "Ä", 0xF2: "Ö", 0xF3: "Ü", 0xF4: "ä", 0xF5: "ö",
             0xF6: "ü", 0x01: "À", 0x02: "Á", 0x03: "Â", 0x04: "Ç",
@@ -79,15 +81,16 @@ class WesternCharacterMap(CharacterMap):
 
 class JapaneseCharacterMap(CharacterMap):
     """Character map for Japanese language."""
-    
+
     def _get_byte_to_char_map(self) -> Dict[int, str]:
         """
         Get the mapping from bytes to Japanese characters.
-        
+
         Returns:
             Dictionary mapping byte values to Japanese characters
         """
-        # Create mapping based on the HTML table
+
+        # fmt: off
         mapping = {
             # Hiragana
             0x00: "　", 0x01: "あ", 0x02: "い", 0x03: "う", 0x04: "え", 0x05: "お",
@@ -104,7 +107,7 @@ class JapaneseCharacterMap(CharacterMap):
             0x42: "ぢ", 0x43: "づ", 0x44: "で", 0x45: "ど", 0x46: "ば", 0x47: "び",
             0x48: "ぶ", 0x49: "べ", 0x4A: "ぼ", 0x4B: "ぱ", 0x4C: "ぴ", 0x4D: "ぷ",
             0x4E: "ぺ", 0x4F: "ぽ", 0x50: "っ",
-            
+
             # Katakana
             0x51: "ア", 0x52: "イ", 0x53: "ウ", 0x54: "エ", 0x55: "オ", 0x56: "カ",
             0x57: "キ", 0x58: "ク", 0x59: "ケ", 0x5A: "コ", 0x5B: "サ", 0x5C: "シ",
@@ -120,14 +123,14 @@ class JapaneseCharacterMap(CharacterMap):
             0x93: "ヅ", 0x94: "デ", 0x95: "ド", 0x96: "バ", 0x97: "ビ", 0x98: "ブ",
             0x99: "ベ", 0x9A: "ボ", 0x9B: "パ", 0x9C: "ピ", 0x9D: "プ", 0x9E: "ペ",
             0x9F: "ポ", 0xA0: "ッ",
-            
+
             # Numbers and punctuation
             0xA1: "０", 0xA2: "１", 0xA3: "２", 0xA4: "３", 0xA5: "４", 0xA6: "５",
             0xA7: "６", 0xA8: "７", 0xA9: "８", 0xAA: "９", 0xAB: "！", 0xAC: "？",
             0xAD: "。", 0xAE: "ー", 0xAF: "・", 0xB0: "‥", 0xB1: "『", 0xB2: "』",
             0xB3: "「", 0xB4: "」", 0xB5: "♂", 0xB6: "♀", 0xB7: "円", 0xB8: "．",
             0xB9: "×", 0xBA: "／",
-            
+
             # Full-width Latin characters
             0xBB: "Ａ", 0xBC: "Ｂ", 0xBD: "Ｃ", 0xBE: "Ｄ", 0xBF: "Ｅ", 0xC0: "Ｆ",
             0xC1: "Ｇ", 0xC2: "Ｈ", 0xC3: "Ｉ", 0xC4: "Ｊ", 0xC5: "Ｋ", 0xC6: "Ｌ",
@@ -140,5 +143,5 @@ class JapaneseCharacterMap(CharacterMap):
             0xEB: "ｗ", 0xEC: "ｘ", 0xED: "ｙ", 0xEE: "ｚ", 0xEF: "►", 0xF0: "：",
             0xF1: "Ä", 0xF2: "Ö", 0xF3: "Ü", 0xF4: "ä", 0xF5: "ö", 0xF6: "ü",
         }
-        
+
         return mapping
