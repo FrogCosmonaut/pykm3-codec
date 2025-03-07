@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pykm3-codec"
+dynamic = ["version"]
+description = "Pokémon Generation III Text Codec"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "AGPL-3.0-or-later"}
+authors = [
+    {name = "Juan Franco", email = "pykm3.codec@juanfg.es"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/FrogCosmonaut/pykm3-codec"
+"Bug Tracker" = "https://github.com/FrogCosmonaut/pykm3-codec/issues"
+
+[tool.setuptools]
+packages = ["pykm3_codec"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pykm3_codec.__version__"}
