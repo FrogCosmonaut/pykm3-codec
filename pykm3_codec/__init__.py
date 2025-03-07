@@ -39,7 +39,7 @@ __all__ = [
 ]
 
 # Package metadata
-__version__ = "0.1.0"
+__version__ = "0.5.0"
 __author__ = "Juan Franco"
 __email__ = "pykm3-codec@juanfg.es"
 __description__ = "Pokémon Generation III Text Codec"
