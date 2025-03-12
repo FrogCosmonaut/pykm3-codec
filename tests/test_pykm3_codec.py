@@ -149,7 +149,7 @@ class TestCodecRegistration(unittest.TestCase):
 
     def setUp(self):
         """Register the codec for testing."""
-        codecs.register(pykm3_codec.pykm3_search_function)
+        pykm3_codec.register()
 
     def test_encode_decode_western(self):
         """Test encoding and decoding Western text through the registered codec."""
