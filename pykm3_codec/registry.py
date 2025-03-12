@@ -4,6 +4,23 @@ from typing import Optional, Tuple
 from .character_maps import JapaneseCharacterMap, WesternCharacterMap
 from .pk_codecs import JapanesePokeTextCodec, WesternPokeTextCodec
 
+# Create singleton instances for reuse
+_JAPANESE_CHAR_MAP = JapaneseCharacterMap()
+_WESTERN_CHAR_MAP = WesternCharacterMap()
+
+# Cache codec instances
+_JAPANESE_CODEC = JapanesePokeTextCodec()
+_WESTERN_CODEC = WesternPokeTextCodec()
+
+# Pre-compute character sets for detection
+_JAP_CHARS = set(_JAPANESE_CHAR_MAP.byte_to_char.values())
+_WEST_CHARS = set(_WESTERN_CHAR_MAP.byte_to_char.values())
+
+# Pre-compute Japanese-only byte ranges for decoding detection
+_JAPANESE_ONLY_BYTES = set(range(0x00, 0xA1)) - set(
+    _WESTERN_CHAR_MAP.byte_to_char.keys()
+)
+
 
 # Python codec registration functions
 def pykm3_encode(
@@ -21,18 +38,23 @@ def pykm3_encode(
     Returns:
         A tuple containing the encoded bytes and the length of the input
     """
-    jap_chars = set(JapaneseCharacterMap()._get_byte_to_char_map().values())
-    west_chars = set(WesternCharacterMap()._get_byte_to_char_map().values())
+    # Fast path for empty strings
+    if not text:
+        return _WESTERN_CODEC.encode("", errors), 0
 
-    all_chars_in_jap = all(char in jap_chars for char in text)
-    any_chars_not_in_western = any(char not in west_chars for char in text)
+    # Quick check for the most common case
+    if all(char in _WEST_CHARS for char in text):
+        return _WESTERN_CODEC.encode(text, errors), len(text)
+
+    # Only do the more expensive test if we might have Japanese text
+    all_chars_in_jap = all(char in _JAP_CHARS for char in text)
+    any_chars_not_in_western = any(char not in _WEST_CHARS for char in text)
 
     if all_chars_in_jap and any_chars_not_in_western:
-        codec = JapanesePokeTextCodec()
+        encoded = _JAPANESE_CODEC.encode(text, errors)
     else:
-        codec = WesternPokeTextCodec()
+        encoded = _WESTERN_CODEC.encode(text, errors)
 
-    encoded = codec.encode(text, errors)
     return encoded, len(text)
 
 
@@ -51,8 +73,7 @@ def pykm3_jap_encode(
     Returns:
         A tuple containing the encoded bytes and the length of the input
     """
-    codec = JapanesePokeTextCodec()
-    encoded = codec.encode(text, errors)
+    encoded = _JAPANESE_CODEC.encode(text, errors)
     return encoded, len(text)
 
 
@@ -71,21 +92,14 @@ def pykm3_decode(
     Returns:
         A tuple containing the decoded string and the length of the input
     """
-    # Try to determine encoding based on byte patterns
-    # This is a simple heuristic - first check for characteristic JAP bytes
-    japanese_chars = set(range(0x00, 0xA1)) - set(
-        WesternCharacterMap()._get_byte_to_char_map().keys()
-    )
+    if not data:
+        return "", 0
 
-    # If any bytes are in the Japanese-only range, use Japanese codec
-    for byte in data:
-        if byte in japanese_chars:
-            codec = JapanesePokeTextCodec()
-            break
+    if _JAPANESE_ONLY_BYTES.intersection(data):
+        decoded = _JAPANESE_CODEC.decode(data, errors)
     else:
-        codec = WesternPokeTextCodec()
+        decoded = _WESTERN_CODEC.decode(data, errors)
 
-    decoded = codec.decode(data, errors)
     return decoded, len(data)
 
 
@@ -104,8 +118,7 @@ def pykm3_jap_decode(
     Returns:
         A tuple containing the decoded string and the length of the input
     """
-    codec = JapanesePokeTextCodec()
-    decoded = codec.decode(data, errors)
+    decoded = _JAPANESE_CODEC.decode(data, errors)
     return decoded, len(data)
 
 
