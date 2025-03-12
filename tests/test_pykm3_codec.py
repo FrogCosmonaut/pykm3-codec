@@ -250,14 +250,6 @@ class TestEdgeCases(unittest.TestCase):
         """Test decoding of incomplete data (no terminator)."""
         self.assertEqual(self.western_codec.decode(b"\xc2\xbf\xc6\xc6\xc9"), "HELLO")
 
-    def test_all_characters_automatic_detection(self):
-        """Test automatic detection of encoding type."""
-        western_encoded = self.WESTERN_CHARACTERS.encode("pykm3")
-        japanese_encoded = self.JAPANESE_CHARACTERS.encode("pykm3")
-
-        self.assertEqual(western_encoded.decode("pykm3"), self.WESTERN_CHARACTERS)
-        self.assertEqual(japanese_encoded.decode("pykm3"), self.JAPANESE_CHARACTERS)
-
     def test_all_western_characters_substrings(self):
         """Test encoding creating all possible substrings of all western characters."""
         test_string = self.WESTERN_CHARACTERS

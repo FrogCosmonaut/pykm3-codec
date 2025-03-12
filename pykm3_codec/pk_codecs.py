@@ -47,10 +47,6 @@ class PokeTextCodec:
         line_break = self._line_break
         space_byte = self._space_byte
 
-        # Avoid dict lookup in loop for common error mode
-        is_replace_mode = errors == "replace"
-        is_ignore_mode = errors == "ignore"
-
         for i, char in enumerate(text):
             if char == "\n":
                 result[pos] = line_break
@@ -64,10 +60,10 @@ class PokeTextCodec:
                     raise UnicodeEncodeError(
                         "pykm3", text, i, i + 1, f"Invalid char: {char}"
                     )
-                elif is_replace_mode:
+                elif errors == "replace":
                     result[pos] = space_byte
                     pos += 1
-                elif is_ignore_mode:
+                elif errors == "ignore":
                     pass  # Skip this char
                 else:
                     # Default fallback
@@ -109,26 +105,22 @@ class PokeTextCodec:
         line_break = self._line_break
         byte_to_char = self._byte_to_char
 
-        # Avoid string comparison in loop
-        is_replace_mode = errors == "replace"
-        is_ignore_mode = errors == "ignore"
-
         for i, byte in enumerate(data):
-            if byte == terminator:
+            if byte in byte_to_char:
+                result_append(byte_to_char[byte])
+            elif byte == terminator:
                 break  # Stop at terminator
             elif byte == line_break:
                 result_append("\n")
-            elif byte in byte_to_char:
-                result_append(byte_to_char[byte])
             else:
                 # Handle unknown bytes according to the errors parameter
                 if errors == "strict":
                     raise UnicodeDecodeError(
                         "pykm3", data, i, i + 1, f"Invalid byte: {byte}"
                     )
-                elif is_replace_mode:
+                elif errors == "replace":
                     result_append("?")
-                elif is_ignore_mode:
+                elif errors == "ignore":
                     pass  # Skip this byte
                 else:
                     # Default fallback
