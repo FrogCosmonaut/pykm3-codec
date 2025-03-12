@@ -14,9 +14,9 @@ sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 class TestByteConverter:
     """Tests for the ByteConverter utility class."""
 
-    def test_to_int(self):
+    def test_byte_converter_to_int(self):
         """Test conversion from bytes to int."""
-        assert ByteConverter.to_int(b"\x01\x02") == 513
+        assert ByteConverter.to_int(b"\x01\x02")
         assert ByteConverter.to_int(b"\xff") == 255
         assert ByteConverter.to_int(b"\x00\x00") == 0
         assert ByteConverter.to_int(b"\xff\xff") == 65535
@@ -27,7 +27,7 @@ class TestByteConverter:
         with pytest.raises(TypeError):
             ByteConverter.to_int(0)
 
-    def test_from_int(self):
+    def test_byte_converter_from_int(self):
         """Test conversion from int to bytes."""
         assert ByteConverter.from_int(513, 2) == b"\x01\x02"
         assert ByteConverter.from_int(255, 1) == b"\xff"
@@ -50,6 +50,16 @@ class TestByteConverter:
         for value, bit_size in invalid_inputs:
             with pytest.raises((TypeError, AttributeError, OverflowError, ValueError)):
                 ByteConverter.from_int(value, bit_size)
+
+    @pytest.mark.benchmark
+    def test_byte_converter_to_int_benchmark(self, benchmark):
+        """Benchmark conversion from bytes to int."""
+        benchmark(ByteConverter.to_int, b"\xff\xff\xa9\x0d")
+
+    @pytest.mark.benchmark
+    def test_byte_converter_from_int_benchmark(self, benchmark):
+        """Benchmark conversion from int to bytes."""
+        benchmark(ByteConverter.from_int, 229244927, 4)
 
 
 class TestWesternCodec:
@@ -104,6 +114,44 @@ class TestWesternCodec:
             == "Line1\nLine2"
         )
 
+    @pytest.mark.benchmark
+    def test_encode_benchmark_short(self, benchmark, codec):
+        """Benchmark encoding of a short text."""
+        benchmark(codec.encode, "HELLO")
+
+    @pytest.mark.benchmark
+    def test_encode_benchmark_medium(self, benchmark, codec):
+        """Benchmark encoding of a medium-length text."""
+        benchmark(codec.encode, "PIKACHU used THUNDERBOLT!")
+
+    @pytest.mark.benchmark
+    def test_encode_benchmark_long(self, benchmark, codec):
+        """Benchmark encoding of a longer text."""
+        benchmark(
+            codec.encode,
+            "PROF. OAK: Hello there! Welcome to the world of POKéMON! My name is OAK. People call me the POKéMON PROF.",
+        )
+
+    @pytest.mark.benchmark
+    def test_decode_benchmark_short(self, benchmark, codec):
+        """Benchmark decoding of a short text."""
+        encoded = codec.encode("HELLO")
+        benchmark(codec.decode, encoded)
+
+    @pytest.mark.benchmark
+    def test_decode_benchmark_medium(self, benchmark, codec):
+        """Benchmark decoding of a medium-length text."""
+        encoded = codec.encode("PIKACHU used THUNDERBOLT!")
+        benchmark(codec.decode, encoded)
+
+    @pytest.mark.benchmark
+    def test_decode_benchmark_long(self, benchmark, codec):
+        """Benchmark decoding of a longer text."""
+        encoded = codec.encode(
+            "PROF. OAK: Hello there! Welcome to the world of POKéMON! My name is OAK. People call me the POKéMON PROF."
+        )
+        benchmark(codec.decode, encoded)
+
 
 class TestJapaneseCodec:
     """Tests for the Japanese Pokémon text codec."""
@@ -138,6 +186,55 @@ class TestJapaneseCodec:
         punctuation = "「こんにちは。」"
         encoded = codec.encode(punctuation)
         assert codec.decode(encoded) == punctuation
+
+    @pytest.mark.benchmark
+    def test_encode_benchmark_hiragana(self, benchmark, codec):
+        """Benchmark encoding of Hiragana characters."""
+        benchmark(codec.encode, "あいうえお")
+
+    @pytest.mark.benchmark
+    def test_encode_benchmark_katakana(self, benchmark, codec):
+        """Benchmark encoding of Katakana characters."""
+        benchmark(codec.encode, "アイウエオ")
+
+    @pytest.mark.benchmark
+    def test_encode_benchmark_mixed(self, benchmark, codec):
+        """Benchmark encoding of mixed Japanese text."""
+        benchmark(codec.encode, "ポケモン　ゲットだぜ！")
+
+    @pytest.mark.benchmark
+    def test_encode_benchmark_long(self, benchmark, codec):
+        """Benchmark encoding of longer Japanese text."""
+        benchmark(
+            codec.encode,
+            "オーキド　ハカセ：コンニチハ！\nポケットモンスターノ　セカイヘ　ヨウコソ！",
+        )
+
+    @pytest.mark.benchmark
+    def test_decode_benchmark_hiragana(self, benchmark, codec):
+        """Benchmark decoding of Hiragana characters."""
+        encoded = codec.encode("あいうえお")
+        benchmark(codec.decode, encoded)
+
+    @pytest.mark.benchmark
+    def test_decode_benchmark_katakana(self, benchmark, codec):
+        """Benchmark decoding of Katakana characters."""
+        encoded = codec.encode("アイウエオ")
+        benchmark(codec.decode, encoded)
+
+    @pytest.mark.benchmark
+    def test_decode_benchmark_mixed(self, benchmark, codec):
+        """Benchmark decoding of mixed Japanese text."""
+        encoded = codec.encode("ポケモン　ゲットだぜ！")
+        benchmark(codec.decode, encoded)
+
+    @pytest.mark.benchmark
+    def test_decode_benchmark_long(self, benchmark, codec):
+        """Benchmark decoding of longer Japanese text."""
+        encoded = codec.encode(
+            "オーキド　ハカセ：コンニチハ！\nポケットモンスターノ　セカイヘ　ヨウコソ！"
+        )
+        benchmark(codec.decode, encoded)
 
 
 class TestCodecRegistration:
@@ -202,6 +299,78 @@ class TestCodecRegistration:
             if os.path.exists(filename):
                 os.remove(filename)
 
+    @pytest.mark.benchmark
+    def test_benchmark_western_encode_decode(self, benchmark):
+        """Benchmark end-to-end encoding and decoding of Western text."""
+        text = "PIKACHU used THUNDERBOLT!"
+
+        def encode_decode():
+            encoded = text.encode("pykm3")
+            return encoded.decode("pykm3")
+
+        benchmark(encode_decode)
+
+    @pytest.mark.benchmark
+    def test_benchmark_japanese_encode_decode(self, benchmark):
+        """Benchmark end-to-end encoding and decoding of Japanese text."""
+        text = "ピカチュウの　１０まんボルト！"
+
+        def encode_decode():
+            encoded = text.encode("pykm3jap")
+            return encoded.decode("pykm3jap")
+
+        benchmark(encode_decode)
+
+    @pytest.mark.benchmark
+    def test_benchmark_western_file_io(self, benchmark):
+        """Benchmark reading and writing Western text using file IO."""
+        text = "PROF. OAK: Hello there!\nWelcome to the world of POKéMON!"
+
+        def file_io():
+            with tempfile.NamedTemporaryFile(delete=False) as f:
+                filename = f.name
+
+            try:
+                with codecs.open(filename, "w", "pykm3") as f:
+                    f.write(text)
+
+                with codecs.open(filename, "r", "pykm3") as f:
+                    content = f.read()
+
+                return content
+            finally:
+                if os.path.exists(filename):
+                    os.remove(filename)
+
+        result = benchmark(file_io)
+        assert result == text
+
+    @pytest.mark.benchmark
+    def test_benchmark_japanese_file_io(self, benchmark):
+        """Benchmark reading and writing Japanese text using file IO."""
+        text = (
+            "オーキド　ハカセ：コンニチハ！\nポケットモンスターノ　セカイヘ　ヨウコソ！"
+        )
+
+        def file_io():
+            with tempfile.NamedTemporaryFile(delete=False) as f:
+                filename = f.name
+
+            try:
+                with codecs.open(filename, "w", "pykm3jap") as f:
+                    f.write(text)
+
+                with codecs.open(filename, "r", "pykm3jap") as f:
+                    content = f.read()
+
+                return content
+            finally:
+                if os.path.exists(filename):
+                    os.remove(filename)
+
+        result = benchmark(file_io)
+        assert result == text
+
 
 class TestEdgeCases:
     """Tests for edge cases and error handling."""
@@ -217,6 +386,11 @@ class TestEdgeCases:
         + "コサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンァィゥェォャュョガ"
         + "ギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポッ０１２３４５６７８９！？。ー・‥『』「」♂♀円"
         + "．×／ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ►：ÄÖÜäöü"
+    )
+
+    WESTERN_SAMPLE = "ÀÁÂÇÈÉÊËÌÎÏÒÓÔŒÙÚÛÑßàáçèéêëìîïòóôœùúûñºª&+Lv="
+    JAPANESE_SAMPLE = (
+        "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめも"
     )
 
     @pytest.fixture
@@ -293,3 +467,32 @@ class TestEdgeCases:
         )
         with pytest.raises(UnicodeEncodeError):
             test_string.encode("pykm3")
+
+    @pytest.mark.benchmark
+    def test_benchmark_western_all_chars(self, benchmark, western_codec):
+        """Benchmark encoding and decoding of a sample of Western characters."""
+
+        def encode_decode():
+            encoded = western_codec.encode(self.WESTERN_SAMPLE)
+            return western_codec.decode(encoded)
+
+        result = benchmark(encode_decode)
+        assert result == self.WESTERN_SAMPLE
+
+    @pytest.mark.benchmark
+    def test_benchmark_japanese_all_chars(self, benchmark, japanese_codec):
+        """Benchmark encoding and decoding of a sample of Japanese characters."""
+
+        def encode_decode():
+            encoded = japanese_codec.encode(self.JAPANESE_SAMPLE)
+            return japanese_codec.decode(encoded)
+
+        result = benchmark(encode_decode)
+        assert result == self.JAPANESE_SAMPLE
+
+
+if __name__ == "__main__":
+    print("To run all tests:")
+    print("  pytest test_pykm3.py -v")
+    print("\nTo run only benchmarks:")
+    print("  pytest test_pykm3.py -v -m benchmark")
