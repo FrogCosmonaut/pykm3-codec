@@ -169,11 +169,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-benchmark/reports
-
-
-# Benchmarks
-benchmarks/results
-benchmarks/html
-benchmarks/env
-benchmarks/numpy
