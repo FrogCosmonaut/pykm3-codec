@@ -2,7 +2,7 @@ import codecs
 import os
 import sys
 import tempfile
-import unittest
+import pytest
 
 import pykm3_codec
 from pykm3_codec import ByteConverter, JapanesePokeTextCodec, WesternPokeTextCodec
@@ -11,35 +11,31 @@ from pykm3_codec import ByteConverter, JapanesePokeTextCodec, WesternPokeTextCod
 sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
 
-class TestByteConverter(unittest.TestCase):
+class TestByteConverter:
     """Tests for the ByteConverter utility class."""
 
     def test_to_int(self):
         """Test conversion from bytes to int."""
-        self.assertEqual(ByteConverter.to_int(b"\x01\x02"), 513)
-        self.assertEqual(ByteConverter.to_int(b"\xff"), 255)
-        self.assertEqual(ByteConverter.to_int(b"\x00\x00"), 0)
-        self.assertEqual(ByteConverter.to_int(b"\xff\xff"), 65535)
-        self.assertEqual(ByteConverter.to_int(b"\xff\xff\xa9\x0d"), 229244927)
+        assert ByteConverter.to_int(b"\x01\x02") == 513
+        assert ByteConverter.to_int(b"\xff") == 255
+        assert ByteConverter.to_int(b"\x00\x00") == 0
+        assert ByteConverter.to_int(b"\xff\xff") == 65535
+        assert ByteConverter.to_int(b"\xff\xff\xa9\x0d") == 229244927
         # test errors
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             ByteConverter.to_int("asd")
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             ByteConverter.to_int(0)
 
     def test_from_int(self):
         """Test conversion from int to bytes."""
-        self.assertEqual(ByteConverter.from_int(513, 2), b"\x01\x02")
-        self.assertEqual(ByteConverter.from_int(255, 1), b"\xff")
-        self.assertEqual(ByteConverter.from_int(0, 2), b"\x00\x00")
-        self.assertEqual(ByteConverter.from_int(229244927, 4), b"\xff\xff\xa9\x0d")
+        assert ByteConverter.from_int(513, 2) == b"\x01\x02"
+        assert ByteConverter.from_int(255, 1) == b"\xff"
+        assert ByteConverter.from_int(0, 2) == b"\x00\x00"
+        assert ByteConverter.from_int(229244927, 4) == b"\xff\xff\xa9\x0d"
         # test padding
-        self.assertEqual(
-            ByteConverter.from_int(258496712, 6), b"\xc8\x58\x68\x0f\x00\x00"
-        )
-        self.assertEqual(
-            ByteConverter.from_int(0, 8), b"\x00\x00\x00\x00\x00\x00\x00\x00"
-        )
+        assert ByteConverter.from_int(258496712, 6) == b"\xc8\x58\x68\x0f\x00\x00"
+        assert ByteConverter.from_int(0, 8) == b"\x00\x00\x00\x00\x00\x00\x00\x00"
         # test errors
         invalid_inputs = [
             ("asd", 1),
@@ -52,102 +48,103 @@ class TestByteConverter(unittest.TestCase):
             ([0, 1], 1 + 3),
         ]
         for value, bit_size in invalid_inputs:
-            with self.assertRaises(
-                (TypeError, AttributeError, OverflowError, ValueError)
-            ):
+            with pytest.raises((TypeError, AttributeError, OverflowError, ValueError)):
                 ByteConverter.from_int(value, bit_size)
 
 
-class TestWesternCodec(unittest.TestCase):
+class TestWesternCodec:
     """Tests for the Western Pokémon text codec."""
 
-    def setUp(self):
+    @pytest.fixture
+    def codec(self):
         """Set up a codec instance for testing."""
-        self.codec = WesternPokeTextCodec()
+        return WesternPokeTextCodec()
 
-    def test_basic_encoding(self):
+    def test_basic_encoding(self, codec):
         """Test basic encoding functionality."""
-        self.assertEqual(self.codec.encode("HELLO")[:-1], b"\xc2\xbf\xc6\xc6\xc9")
-        self.assertEqual(self.codec.encode("hello")[:-1], b"\xdc\xd9\xe0\xe0\xe3")
+        assert codec.encode("HELLO")[:-1] == b"\xc2\xbf\xc6\xc6\xc9"
+        assert codec.encode("hello")[:-1] == b"\xdc\xd9\xe0\xe0\xe3"
 
-    def test_numbers_and_punctuation(self):
+    def test_numbers_and_punctuation(self, codec):
         """Test encoding of numbers and punctuation."""
-        self.assertEqual(self.codec.encode("123!?")[:-1], b"\xa2\xa3\xa4\xab\xac")
+        assert codec.encode("123!?")[:-1] == b"\xa2\xa3\xa4\xab\xac"
 
-    def test_special_characters(self):
+    def test_special_characters(self, codec):
         """Test encoding of special Pokémon characters."""
-        self.assertEqual(self.codec.encode("♂♀")[:-1], b"\xb5\xb6")
+        assert codec.encode("♂♀")[:-1] == b"\xb5\xb6"
 
-    def test_accented_characters(self):
+    def test_accented_characters(self, codec):
         """Test encoding of accented characters."""
-        self.assertEqual(self.codec.encode("éÉèÈ")[:-1], b"\x1b\x06\x1a\x05")
+        assert codec.encode("éÉèÈ")[:-1] == b"\x1b\x06\x1a\x05"
 
-    def test_line_breaks(self):
+    def test_line_breaks(self, codec):
         """Test handling of line breaks."""
-        self.assertEqual(
-            self.codec.encode("Line1\nLine2")[:-1],
-            b"\xc6\xdd\xe2\xd9\xa2\xfe\xc6\xdd\xe2\xd9\xa3",
+        assert (
+            codec.encode("Line1\nLine2")[:-1]
+            == b"\xc6\xdd\xe2\xd9\xa2\xfe\xc6\xdd\xe2\xd9\xa3"
         )
 
-    def test_basic_decoding(self):
+    def test_basic_decoding(self, codec):
         """Test basic decoding functionality."""
-        self.assertEqual(self.codec.decode(b"\xc2\xbf\xc6\xc6\xc9\xff"), "HELLO")
-        self.assertEqual(self.codec.decode(b"\xdc\xd9\xe0\xe0\xe3\xff"), "hello")
+        assert codec.decode(b"\xc2\xbf\xc6\xc6\xc9\xff") == "HELLO"
+        assert codec.decode(b"\xdc\xd9\xe0\xe0\xe3\xff") == "hello"
 
-    def test_decode_numbers_punctuation(self):
+    def test_decode_numbers_punctuation(self, codec):
         """Test decoding of numbers and punctuation."""
-        self.assertEqual(self.codec.decode(b"\xa2\xa3\xa4\xab\xac\xff"), "123!?")
+        assert codec.decode(b"\xa2\xa3\xa4\xab\xac\xff") == "123!?"
 
-    def test_decode_special_characters(self):
+    def test_decode_special_characters(self, codec):
         """Test decoding of special Pokémon characters."""
-        self.assertEqual(self.codec.decode(b"\xb5\xb6\xff"), "♂♀")
+        assert codec.decode(b"\xb5\xb6\xff") == "♂♀"
 
-    def test_decode_with_line_breaks(self):
+    def test_decode_with_line_breaks(self, codec):
         """Test decoding text with line breaks."""
-        self.assertEqual(
-            self.codec.decode(b"\xc6\xdd\xe2\xd9\xa2\xfe\xc6\xdd\xe2\xd9\xa3\xff"),
-            "Line1\nLine2",
+        assert (
+            codec.decode(b"\xc6\xdd\xe2\xd9\xa2\xfe\xc6\xdd\xe2\xd9\xa3\xff")
+            == "Line1\nLine2"
         )
 
 
-class TestJapaneseCodec(unittest.TestCase):
+class TestJapaneseCodec:
     """Tests for the Japanese Pokémon text codec."""
 
-    def setUp(self):
+    @pytest.fixture
+    def codec(self):
         """Set up a codec instance for testing."""
-        self.codec = JapanesePokeTextCodec()
+        return JapanesePokeTextCodec()
 
-    def test_hiragana(self):
+    def test_hiragana(self, codec):
         """Test encoding and decoding of Hiragana characters."""
         hiragana = "あいうえお"
-        encoded = self.codec.encode(hiragana)
-        self.assertEqual(encoded[:-1], b"\x01\x02\x03\x04\x05")
-        self.assertEqual(self.codec.decode(encoded), hiragana)
+        encoded = codec.encode(hiragana)
+        assert encoded[:-1] == b"\x01\x02\x03\x04\x05"
+        assert codec.decode(encoded) == hiragana
 
-    def test_katakana(self):
+    def test_katakana(self, codec):
         """Test encoding and decoding of Katakana characters."""
         katakana = "アイウエオ"
-        encoded = self.codec.encode(katakana)
-        self.assertEqual(encoded[:-1], b"\x51\x52\x53\x54\x55")
-        self.assertEqual(self.codec.decode(encoded), katakana)
+        encoded = codec.encode(katakana)
+        assert encoded[:-1] == b"\x51\x52\x53\x54\x55"
+        assert codec.decode(encoded) == katakana
 
-    def test_mixed_japanese(self):
+    def test_mixed_japanese(self, codec):
         """Test encoding and decoding of mixed Japanese text."""
         mixed = "ポケモン　ゲットだぜ！"
-        encoded = self.codec.encode(mixed)
-        self.assertEqual(self.codec.decode(encoded), mixed)
+        encoded = codec.encode(mixed)
+        assert codec.decode(encoded) == mixed
 
-    def test_japanese_punctuation(self):
+    def test_japanese_punctuation(self, codec):
         """Test encoding and decoding of Japanese punctuation."""
         punctuation = "「こんにちは。」"
-        encoded = self.codec.encode(punctuation)
-        self.assertEqual(self.codec.decode(encoded), punctuation)
+        encoded = codec.encode(punctuation)
+        assert codec.decode(encoded) == punctuation
 
 
-class TestCodecRegistration(unittest.TestCase):
+class TestCodecRegistration:
     """Tests for codec registration and usage through the standard interface."""
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self):
         """Register the codec for testing."""
         pykm3_codec.register()
 
@@ -156,14 +153,14 @@ class TestCodecRegistration(unittest.TestCase):
         text = "PIKACHU used THUNDERBOLT!"
         encoded = text.encode("pykm3")
         decoded = encoded.decode("pykm3")
-        self.assertEqual(decoded, text)
+        assert decoded == text
 
     def test_encode_decode_japanese(self):
         """Test encoding and decoding Japanese text through the registered codec."""
         text = "ピカチュウの　１０まんボルト！"
         encoded = text.encode("pykm3jap")
         decoded = encoded.decode("pykm3jap")
-        self.assertEqual(decoded, "ピカチュウの　１０まんボルト！")
+        assert decoded == "ピカチュウの　１０まんボルト！"
 
     def test_stream_io_western(self):
         """Test reading and writing using stream IO."""
@@ -179,7 +176,7 @@ class TestCodecRegistration(unittest.TestCase):
             with codecs.open(filename, "r", "pykm3") as f:
                 content = f.read()
 
-            self.assertEqual(content, text)
+            assert content == text
         finally:
             if os.path.exists(filename):
                 os.remove(filename)
@@ -200,19 +197,19 @@ class TestCodecRegistration(unittest.TestCase):
             with codecs.open(filename, "r", "pykm3jap") as f:
                 content = f.read()
 
-            self.assertEqual(content, text)
+            assert content == text
         finally:
             if os.path.exists(filename):
                 os.remove(filename)
 
 
-class TestEdgeCases(unittest.TestCase):
+class TestEdgeCases:
     """Tests for edge cases and error handling."""
 
     WESTERN_CHARACTERS = (
         "ÀÁÂÇÈÉÊËÌÎÏÒÓÔŒÙÚÛÑßàáçèéêëìîïòóôœùúûñºª&+Lv=;▯¿¡PKMNÍ%()âí↑↓←→*****"
-        + "**ᵉ<>0123456789!?.-･‥“”‘'♂♀$,×/ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"
-        + "klmnopqrstuvwxyz►:ÄÖÜäöü"
+        + "**ᵉ<>0123456789!?.-･‥"
+        "''♂♀$,×/ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij" + "klmnopqrstuvwxyz►:ÄÖÜäöü"
     )
     JAPANESE_CHARACTERS = (
         "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろ"
@@ -222,33 +219,38 @@ class TestEdgeCases(unittest.TestCase):
         + "．×／ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ►：ÄÖÜäöü"
     )
 
-    def setUp(self):
-        """Set up codec instances for testing."""
-        self.western_codec = WesternPokeTextCodec()
-        self.japanese_codec = JapanesePokeTextCodec()
+    @pytest.fixture
+    def western_codec(self):
+        """Set up western codec instance for testing."""
+        return WesternPokeTextCodec()
 
-    def test_empty_string(self):
+    @pytest.fixture
+    def japanese_codec(self):
+        """Set up japanese codec instance for testing."""
+        return JapanesePokeTextCodec()
+
+    def test_empty_string(self, western_codec, japanese_codec):
         """Test encoding and decoding an empty string."""
-        self.assertEqual(self.western_codec.decode(self.western_codec.encode("")), "")
-        self.assertEqual(self.japanese_codec.decode(self.japanese_codec.encode("")), "")
+        assert western_codec.decode(western_codec.encode("")) == ""
+        assert japanese_codec.decode(japanese_codec.encode("")) == ""
 
-    def test_unsupported_characters(self):
+    def test_unsupported_characters(self, western_codec):
         """Test handling of unsupported characters."""
         text_with_unsupported = "Hello 😊 World ⚡ PikáChU!"  # Emoji is unsupported
-        encoded = self.western_codec.encode(text_with_unsupported)
-        decoded = self.western_codec.decode(encoded)
-        self.assertEqual(decoded, "Hello   World   PikáChU!")
+        encoded = western_codec.encode(text_with_unsupported)
+        decoded = western_codec.decode(encoded)
+        assert decoded == "Hello   World   PikáChU!"
 
     def test_unsupported_characters_error_scheme(self):
         """Test handling of unsupported characters with error scheme."""
         text_with_unsupported = "Hello 😊 World ⚡ PikáChU!"  # Emoji is unsupported
         encoded = text_with_unsupported.encode("pykm3", errors="replace")
         decoded = encoded.decode("pykm3", errors="replace")
-        self.assertEqual(decoded, "Hello   World   PikáChU!")
+        assert decoded == "Hello   World   PikáChU!"
 
-    def test_incomplete_data(self):
+    def test_incomplete_data(self, western_codec):
         """Test decoding of incomplete data (no terminator)."""
-        self.assertEqual(self.western_codec.decode(b"\xc2\xbf\xc6\xc6\xc9"), "HELLO")
+        assert western_codec.decode(b"\xc2\xbf\xc6\xc6\xc9") == "HELLO"
 
     def test_all_western_characters_substrings(self):
         """Test encoding creating all possible substrings of all western characters."""
@@ -260,11 +262,9 @@ class TestEdgeCases(unittest.TestCase):
                 encoded = substring.encode("pykm3")
                 decoded = encoded.decode("pykm3")
 
-                self.assertEqual(
-                    decoded,
-                    substring,
-                    f"Failed with substring: '{substring}' at indices {i}:{z}",
-                )
+                assert (
+                    decoded == substring
+                ), f"Failed with substring: '{substring}' at indices {i}:{z}"
 
     def test_all_japanese_characters_substrings(self):
         """Test encoding creating all possible substrings of all japanese characters."""
@@ -276,16 +276,14 @@ class TestEdgeCases(unittest.TestCase):
                 encoded = substring.encode("pykm3jap")
                 decoded = encoded.decode("pykm3jap")
 
-                self.assertEqual(
-                    decoded,
-                    substring,
-                    f"Failed with substring: '{substring}' at indices {i}:{z}",
-                )
+                assert (
+                    decoded == substring
+                ), f"Failed with substring: '{substring}' at indices {i}:{z}"
 
     def test_combined_characters(self):
         """Test encoding and decoding of combined characters, this should raise an Exception."""
         test_string = "となにぬね is not Pikachu! - ゅょがぎぐげござ"
-        with self.assertRaises(UnicodeEncodeError):
+        with pytest.raises(UnicodeEncodeError):
             test_string.encode("pykm3")
 
     def test_brainfuck_characters(self):
@@ -293,9 +291,5 @@ class TestEdgeCases(unittest.TestCase):
         test_string = (
             "ꙮ ၌ ꧁ ꧂ ፍ ߷ ᚕ ᨏ ᥦ Ⴚ ꓄ ꕥ ꘎ ꩜ ꫞ ꯍℵ ⅏ ⊰ ⋋ ⌬ ⏧ ⑁ ⛮ ✿ ❁ ❧ ⠺ ⣿ ⭔ ⮷ ⺫ ⽏ ⿀"
         )
-        with self.assertRaises(UnicodeEncodeError):
+        with pytest.raises(UnicodeEncodeError):
             test_string.encode("pykm3")
-
-
-if __name__ == "__main__":
-    unittest.main()
