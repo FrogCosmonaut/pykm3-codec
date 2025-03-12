@@ -12,6 +12,12 @@ class PokeTextCodec:
             char_map: The character map to use
         """
         self.char_map = char_map
+        # Cache frequently accessed values
+        self._terminator = char_map.TERMINATOR
+        self._line_break = char_map.LINE_BREAK
+        self._char_to_byte = char_map.char_to_byte
+        self._byte_to_char = char_map.byte_to_char
+        self._space_byte = char_map.char_to_byte.get(" ", 0x00)
 
     def encode(self, text: str, errors: str = "replace") -> bytes:
         """
@@ -28,30 +34,52 @@ class PokeTextCodec:
         Returns:
             bytes: The encoded Pokémon text as a byte sequence.
         """
-        result = bytearray()
+        # Fast path for empty string
+        if not text:
+            return bytes([self._terminator])
+
+        # Pre-allocate result with estimated size
+        result = bytearray(len(text) + 1)  # +1 for terminator
+        pos = 0
+
+        # Direct access to dictionaries is faster
+        char_to_byte = self._char_to_byte
+        line_break = self._line_break
+        space_byte = self._space_byte
+
+        # Avoid dict lookup in loop for common error mode
+        is_replace_mode = errors == "replace"
+        is_ignore_mode = errors == "ignore"
 
         for i, char in enumerate(text):
             if char == "\n":
-                result.append(self.char_map.LINE_BREAK)
-            elif char in self.char_map.char_to_byte:
-                result.append(self.char_map.char_to_byte[char])
+                result[pos] = line_break
+                pos += 1
+            elif char in char_to_byte:
+                result[pos] = char_to_byte[char]
+                pos += 1
             else:
                 # Handle unknown chars according to the errors parameter
                 if errors == "strict":
                     raise UnicodeEncodeError(
                         "pykm3", text, i, i + 1, f"Invalid char: {char}"
                     )
-                elif errors == "replace":
-                    result.append(self.char_map.char_to_byte.get(" ", 0x00))
-                elif errors == "ignore":
+                elif is_replace_mode:
+                    result[pos] = space_byte
+                    pos += 1
+                elif is_ignore_mode:
                     pass  # Skip this char
                 else:
                     # Default fallback
-                    result.append(self.char_map.char_to_byte.get(" ", 0x00))
+                    result[pos] = space_byte
+                    pos += 1
 
         # Add terminator
-        result.append(self.char_map.TERMINATOR)
-        return bytes(result)
+        result[pos] = self._terminator
+        pos += 1
+
+        # Trim the bytearray to actual size used
+        return bytes(result[:pos])
 
     def decode(self, data: bytes, errors: str = "strict") -> str:
         """
@@ -68,33 +96,43 @@ class PokeTextCodec:
         Returns:
             str: The decoded string.
         """
+        # Fast path for empty data
+        if not data:
+            return ""
+
+        # Pre-allocate result buffer
         result = []
-        i = 0
+        result_append = result.append  # Local reference for faster method lookup
 
-        while i < len(data):
-            byte = data[i]
+        # Cache lookups
+        terminator = self._terminator
+        line_break = self._line_break
+        byte_to_char = self._byte_to_char
 
-            if byte == self.char_map.TERMINATOR:
+        # Avoid string comparison in loop
+        is_replace_mode = errors == "replace"
+        is_ignore_mode = errors == "ignore"
+
+        for i, byte in enumerate(data):
+            if byte == terminator:
                 break  # Stop at terminator
-            elif byte == self.char_map.LINE_BREAK:
-                result.append("\n")
-            elif byte in self.char_map.byte_to_char:
-                result.append(self.char_map.byte_to_char[byte])
+            elif byte == line_break:
+                result_append("\n")
+            elif byte in byte_to_char:
+                result_append(byte_to_char[byte])
             else:
                 # Handle unknown bytes according to the errors parameter
                 if errors == "strict":
                     raise UnicodeDecodeError(
                         "pykm3", data, i, i + 1, f"Invalid byte: {byte}"
                     )
-                elif errors == "replace":
-                    result.append("?")
-                elif errors == "ignore":
+                elif is_replace_mode:
+                    result_append("?")
+                elif is_ignore_mode:
                     pass  # Skip this byte
                 else:
                     # Default fallback
-                    result.append("?")
-
-            i += 1
+                    result_append("?")
 
         return "".join(result)
 
