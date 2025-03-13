@@ -3,8 +3,7 @@ from typing import Optional, Tuple
 
 from .pk_codecs import JapanesePokeTextCodec, WesternPokeTextCodec
 
-
-# Cache codec instances
+# Create singleton instances once - avoid recreation
 _JAPANESE_CODEC = JapanesePokeTextCodec()
 _WESTERN_CODEC = WesternPokeTextCodec()
 

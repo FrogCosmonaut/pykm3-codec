@@ -4,6 +4,14 @@ from .character_maps import CharacterMap, JapaneseCharacterMap, WesternCharacter
 class PokeTextCodec:
     """Base class for Pokémon text codecs."""
 
+    __slots__ = (
+        "_terminator",
+        "_line_break",
+        "_char_to_byte",
+        "_byte_to_char",
+        "_space_byte",
+    )
+
     def __init__(self, char_map: CharacterMap):
         """
         Initialize the codec with a character map.
@@ -11,7 +19,6 @@ class PokeTextCodec:
         Args:
             char_map: The character map to use
         """
-        self.char_map = char_map
         # Cache frequently accessed values
         self._terminator = char_map.TERMINATOR
         self._line_break = char_map.LINE_BREAK
@@ -48,11 +55,11 @@ class PokeTextCodec:
         space_byte = self._space_byte
 
         for i, char in enumerate(text):
-            if char == "\n":
-                result[pos] = line_break
-                pos += 1
-            elif char in char_to_byte:
+            if char in char_to_byte:
                 result[pos] = char_to_byte[char]
+                pos += 1
+            elif char == "\n":
+                result[pos] = line_break
                 pos += 1
             else:
                 # Handle unknown chars according to the errors parameter

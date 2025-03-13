@@ -1,39 +1,26 @@
-from typing import Dict, Set
+from typing import Dict
 
 
 class CharacterMap:
-    """Base class for character mappings."""
+    """Base character map class with optimized memory usage."""
 
-    # Control characters
+    __slots__ = (
+        "char_to_byte",
+        "byte_to_char",
+    )
+
     TERMINATOR = 0xFF
     LINE_BREAK = 0xFE
 
     def __init__(self):
-        """Initialize the character maps."""
+        """Initialize with optimized lookup structures."""
         self.byte_to_char = self._get_byte_to_char_map()
-        # Create reverse mapping in one go for better performance
+        # Create reverse mapping for better performance
         self.char_to_byte = {k: v for v, k in self.byte_to_char.items()}
 
-        # Pre-compute character sets for faster lookup
-        self.chars_set: Set[str] = set(self.byte_to_char.values())
-        self.bytes_set: Set[int] = set(self.byte_to_char.keys())
-
     def _get_byte_to_char_map(self) -> Dict[int, str]:
-        """
-        Get the mapping from bytes to characters.
-
-        Returns:
-            Dictionary mapping byte values to characters
-        """
+        """Get the mapping from bytes to characters."""
         raise NotImplementedError("Subclasses must implement this method")
-
-    def contains_char(self, char: str) -> bool:
-        """Fast check if character is in map."""
-        return char in self.chars_set
-
-    def contains_byte(self, byte: int) -> bool:
-        """Fast check if byte is in map."""
-        return byte in self.bytes_set
 
 
 class WesternCharacterMap(CharacterMap):
