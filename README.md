@@ -6,7 +6,6 @@ A Python codec for encoding and decoding text in Pokémon Generation III games (
 
 - Full support for Western and Japanese character sets
 - Implementation as a standard Python codec
-- Automatic encoding detection
 
 ## Installation
 
@@ -16,46 +15,39 @@ pip install pykm3-codec
 
 ## Usage
 
-### Basic Usage - Automatic language detection
+### Basic Usage - Registered codec
 ```python
-import codecs
 import pykm3_codec
 
+# Register the codecs
+pykm3_codec.register()
+
 # Western text
-text = "PIKACHU used THUNDERBOLT!"
+text = "KADABRA used PSYCHIC!"
 encoded = text.encode('pykm3')
 decoded = encoded.decode('pykm3')
 print(f"Original: {text}")
-print(f"Encoded (hex): {encoded.hex(' ')}")
-print(f"Decoded: {decoded}")
+print(f"Encoded : {encoded.hex(' ')}")
+print(f"Decoded : {decoded}")
 
-# Japanese text - automatic detection
-jp_text = "ピカチュウの　１０まんボルト！"
-encoded = jp_text.encode('pykm3')
-decoded = encoded.decode('pykm3')
+# Japanese text
+jp_text = "ユンゲラー　ハ　サイコキネシス　ヲ　ツカッタ！"
+encoded = jp_text.encode('pykm3jap')
+decoded = encoded.decode('pykm3jap')
 print(f"Original: {jp_text}")
-print(f"Encoded (hex): {encoded.hex(' ')}")
-print(f"Decoded: {decoded}")
+print(f"Encoded : {encoded.hex(' ')}")
+print(f"Decoded : {decoded}")
 ```
 
-**⚠ WARNING**
-For decoding to japanese is recommended to use directly the "pykm3jap" codec,
-in most cases the automatic detection works but it can fail in some edge cases,
-specially when encoding short words/bytearrays.
-```python
-# Automatic language detection won't work
-# because all byte values are also in the western dictionary
-encoded = b"\x0B\x08\x27" # さくら (sakura 🌸)
-decoded = encoded.decode('pykm3') # Output: 'ÎËú'
-decoded = encoded.decode('pykm3jap') # Output: 'さくら'
-
-# This works because byte 4A is not in the western dictionary
-encoded = b"\x0B\x08\x27\xE2\x4A" # さくらんぼ (sakuranbo 🍒)
-decoded = encoded.decode('pykm3') # Output: 'さくらｎぼ'
+Output:
 ```
-For example: in bytes to japanese: "A2 A3 A4 A5" == "１２３４" _(fullwidth numbers)_
-in bytes to western: "A2 A3 A4 A5" == "1234"
-and "1234" != "１２３４"
+Original: KADABRA used PSYCHIC!
+Encoded : c5 bb be bb bc cc bb 00 e9 e7 d9 d8 00 ca cd d3 bd c2 c3 bd ab ff
+Decoded : KADABRA used PSYCHIC!
+Original: ユンゲラー　ハ　サイコキネシス　ヲ　ツカッタ！
+Encoded : 75 7e 8a 77 ae 00 6a 00 5b 52 5a 57 68 5c 5d 00 7d 00 62 56 a0 60 ab ff
+Decoded : ユンゲラー　ハ　サイコキネシス　ヲ　ツカッタ！
+```
 
 ### Using the Codec Directly
 

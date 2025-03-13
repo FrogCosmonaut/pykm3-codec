@@ -1,8 +1,15 @@
 import codecs
 from typing import Optional, Tuple
 
-from .character_maps import JapaneseCharacterMap, WesternCharacterMap
 from .pk_codecs import JapanesePokeTextCodec, WesternPokeTextCodec
+
+# Create singleton instances once - avoid recreation
+_JAPANESE_CODEC = JapanesePokeTextCodec()
+_WESTERN_CODEC = WesternPokeTextCodec()
+
+
+def register() -> None:
+    codecs.register(pykm3_search_function)
 
 
 # Python codec registration functions
@@ -21,18 +28,7 @@ def pykm3_encode(
     Returns:
         A tuple containing the encoded bytes and the length of the input
     """
-    jap_chars = set(JapaneseCharacterMap()._get_byte_to_char_map().values())
-    west_chars = set(WesternCharacterMap()._get_byte_to_char_map().values())
-
-    all_chars_in_jap = all(char in jap_chars for char in text)
-    any_chars_not_in_western = any(char not in west_chars for char in text)
-
-    if all_chars_in_jap and any_chars_not_in_western:
-        codec = JapanesePokeTextCodec()
-    else:
-        codec = WesternPokeTextCodec()
-
-    encoded = codec.encode(text, errors)
+    encoded = _WESTERN_CODEC.encode(text, errors)
     return encoded, len(text)
 
 
@@ -51,8 +47,7 @@ def pykm3_jap_encode(
     Returns:
         A tuple containing the encoded bytes and the length of the input
     """
-    codec = JapanesePokeTextCodec()
-    encoded = codec.encode(text, errors)
+    encoded = _JAPANESE_CODEC.encode(text, errors)
     return encoded, len(text)
 
 
@@ -71,21 +66,9 @@ def pykm3_decode(
     Returns:
         A tuple containing the decoded string and the length of the input
     """
-    # Try to determine encoding based on byte patterns
-    # This is a simple heuristic - first check for characteristic JAP bytes
-    japanese_chars = set(range(0x00, 0xA1)) - set(
-        WesternCharacterMap()._get_byte_to_char_map().keys()
-    )
-
-    # If any bytes are in the Japanese-only range, use Japanese codec
-    for byte in data:
-        if byte in japanese_chars:
-            codec = JapanesePokeTextCodec()
-            break
-    else:
-        codec = WesternPokeTextCodec()
-
-    decoded = codec.decode(data, errors)
+    if not data:
+        return "", 0
+    decoded = _WESTERN_CODEC.decode(data, errors)
     return decoded, len(data)
 
 
@@ -104,8 +87,9 @@ def pykm3_jap_decode(
     Returns:
         A tuple containing the decoded string and the length of the input
     """
-    codec = JapanesePokeTextCodec()
-    decoded = codec.decode(data, errors)
+    if not data:
+        return "", 0
+    decoded = _JAPANESE_CODEC.decode(data, errors)
     return decoded, len(data)
 
 
