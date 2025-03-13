@@ -411,9 +411,8 @@ class TestEdgeCases:
     def test_unsupported_characters(self, western_codec):
         """Test handling of unsupported characters."""
         text_with_unsupported = "Hello 😊 World ⚡ PikáChU!"  # Emoji is unsupported
-        encoded = western_codec.encode(text_with_unsupported)
-        decoded = western_codec.decode(encoded)
-        assert decoded == "Hello   World   PikáChU!"
+        with pytest.raises(UnicodeEncodeError):
+            western_codec.encode(text_with_unsupported)
 
     def test_unsupported_characters_error_scheme(self):
         """Test handling of unsupported characters with error scheme."""
