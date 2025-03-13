@@ -1,42 +1,11 @@
 from typing import Dict
 
 
-class CharacterMap:
-    """Base character map class with optimized memory usage."""
+_BYTE_LINE_BREAK = 0xFE
 
-    __slots__ = (
-        "char_to_byte",
-        "byte_to_char",
-    )
-
-    TERMINATOR = 0xFF
-    LINE_BREAK = 0xFE
-
-    def __init__(self):
-        """Initialize with optimized lookup structures."""
-        self.byte_to_char = self._get_byte_to_char_map()
-        # Create reverse mapping for better performance
-        self.char_to_byte = {k: v for v, k in self.byte_to_char.items()}
-
-    def _get_byte_to_char_map(self) -> Dict[int, str]:
-        """Get the mapping from bytes to characters."""
-        raise NotImplementedError("Subclasses must implement this method")
-
-
-class WesternCharacterMap(CharacterMap):
-    """Character map for Western languages."""
-
-    def _get_byte_to_char_map(self) -> Dict[int, str]:
-        """
-        Get the mapping from bytes to Western characters.
-
-        Returns:
-            Dictionary mapping byte values to Western characters
-        """
-
-        # fmt: off
-        return {
-            0x00: " ",      # Space
+# fmt: off
+_WESTERN_CHAR_MAP = {
+            0x00: " ",  # Space
             # Uppercase letters
             0xBB: "A", 0xBC: "B", 0xBD: "C", 0xBE: "D", 0xBF: "E",
             0xC0: "F", 0xC1: "G", 0xC2: "H", 0xC3: "I", 0xC4: "J",
@@ -76,22 +45,11 @@ class WesternCharacterMap(CharacterMap):
             0x21: "ï", 0x22: "ò", 0x23: "ó", 0x24: "ô", 0x25: "œ",
             0x26: "ù", 0x27: "ú", 0x28: "û", 0x29: "ñ", 0x2A: "º",
             0x2B: "ª", 0x68: "â", 0x6F: "í", 0x5A: "Í", 0xA0: "ʳ",
+            # Extra
+            _BYTE_LINE_BREAK: "\n",
         }
 
-
-class JapaneseCharacterMap(CharacterMap):
-    """Character map for Japanese language."""
-
-    def _get_byte_to_char_map(self) -> Dict[int, str]:
-        """
-        Get the mapping from bytes to Japanese characters.
-
-        Returns:
-            Dictionary mapping byte values to Japanese characters
-        """
-
-        # fmt: off
-        mapping = {
+_JAPANESE_CHAR_MAP = {
             # Hiragana
             0x00: "　", 0x01: "あ", 0x02: "い", 0x03: "う", 0x04: "え", 0x05: "お",
             0x06: "か", 0x07: "き", 0x08: "く", 0x09: "け", 0x0A: "こ", 0x0B: "さ",
@@ -107,7 +65,6 @@ class JapaneseCharacterMap(CharacterMap):
             0x42: "ぢ", 0x43: "づ", 0x44: "で", 0x45: "ど", 0x46: "ば", 0x47: "び",
             0x48: "ぶ", 0x49: "べ", 0x4A: "ぼ", 0x4B: "ぱ", 0x4C: "ぴ", 0x4D: "ぷ",
             0x4E: "ぺ", 0x4F: "ぽ", 0x50: "っ",
-
             # Katakana
             0x51: "ア", 0x52: "イ", 0x53: "ウ", 0x54: "エ", 0x55: "オ", 0x56: "カ",
             0x57: "キ", 0x58: "ク", 0x59: "ケ", 0x5A: "コ", 0x5B: "サ", 0x5C: "シ",
@@ -123,14 +80,12 @@ class JapaneseCharacterMap(CharacterMap):
             0x93: "ヅ", 0x94: "デ", 0x95: "ド", 0x96: "バ", 0x97: "ビ", 0x98: "ブ",
             0x99: "ベ", 0x9A: "ボ", 0x9B: "パ", 0x9C: "ピ", 0x9D: "プ", 0x9E: "ペ",
             0x9F: "ポ", 0xA0: "ッ",
-
             # Numbers and punctuation
             0xA1: "０", 0xA2: "１", 0xA3: "２", 0xA4: "３", 0xA5: "４", 0xA6: "５",
             0xA7: "６", 0xA8: "７", 0xA9: "８", 0xAA: "９", 0xAB: "！", 0xAC: "？",
             0xAD: "。", 0xAE: "ー", 0xAF: "・", 0xB0: "‥", 0xB1: "『", 0xB2: "』",
             0xB3: "「", 0xB4: "」", 0xB5: "♂", 0xB6: "♀", 0xB7: "円", 0xB8: "．",
             0xB9: "×", 0xBA: "／",
-
             # Full-width Latin characters
             0xBB: "Ａ", 0xBC: "Ｂ", 0xBD: "Ｃ", 0xBE: "Ｄ", 0xBF: "Ｅ", 0xC0: "Ｆ",
             0xC1: "Ｇ", 0xC2: "Ｈ", 0xC3: "Ｉ", 0xC4: "Ｊ", 0xC5: "Ｋ", 0xC6: "Ｌ",
@@ -142,6 +97,51 @@ class JapaneseCharacterMap(CharacterMap):
             0xE5: "ｑ", 0xE6: "ｒ", 0xE7: "ｓ", 0xE8: "ｔ", 0xE9: "ｕ", 0xEA: "ｖ",
             0xEB: "ｗ", 0xEC: "ｘ", 0xED: "ｙ", 0xEE: "ｚ", 0xEF: "►", 0xF0: "：",
             0xF1: "Ä", 0xF2: "Ö", 0xF3: "Ü", 0xF4: "ä", 0xF5: "ö", 0xF6: "ü",
+            # Extra
+            _BYTE_LINE_BREAK: "\n",
         }
+# fmt: on
 
-        return mapping
+
+class CharacterMap:
+    """Base character map class with optimized memory usage."""
+
+    __slots__ = (
+        "char_to_byte",
+        "byte_to_char",
+    )
+
+    def __init__(self):
+        """Initialize with optimized lookup structures."""
+        self.byte_to_char = self._get_byte_to_char_map()
+        self.char_to_byte = {k: v for v, k in self.byte_to_char.items()}
+
+    def _get_byte_to_char_map(self) -> Dict[int, str]:
+        """Get the mapping from bytes to characters."""
+        raise NotImplementedError("Subclasses must implement this method")
+
+
+class WesternCharacterMap(CharacterMap):
+    """Character map for western language."""
+
+    def _get_byte_to_char_map(self) -> Dict[int, str]:
+        """
+        Get the mapping from bytes to western characters.
+
+        Returns:
+            Dictionary mapping byte values to western characters
+        """
+        return _WESTERN_CHAR_MAP
+
+
+class JapaneseCharacterMap(CharacterMap):
+    """Character map for Japanese language."""
+
+    def _get_byte_to_char_map(self) -> Dict[int, str]:
+        """
+        Get the mapping from bytes to Japanese characters.
+
+        Returns:
+            Dictionary mapping byte values to Japanese characters
+        """
+        return _JAPANESE_CHAR_MAP
