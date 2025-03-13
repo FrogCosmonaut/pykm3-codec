@@ -1,7 +1,11 @@
+from functools import lru_cache
+
+
 class ByteConverter:
     """Handles conversion between bytes and integers."""
 
     @staticmethod
+    @lru_cache(maxsize=128)
     def to_int(data: bytes) -> int:
         """
         Convert bytes to integer using little-endian byte order.
@@ -15,6 +19,7 @@ class ByteConverter:
         return int.from_bytes(data, byteorder="little")
 
     @staticmethod
+    @lru_cache(maxsize=128)
     def from_int(value: int, length: int) -> bytes:
         """
         Convert integer to bytes using little-endian byte order.
