@@ -1,5 +1,6 @@
 import codecs
 from typing import Optional, Tuple
+from functools import lru_cache
 
 from .pk_codecs import JapanesePokeTextCodec, WesternPokeTextCodec
 
@@ -7,12 +8,18 @@ from .pk_codecs import JapanesePokeTextCodec, WesternPokeTextCodec
 _JAPANESE_CODEC = JapanesePokeTextCodec()
 _WESTERN_CODEC = WesternPokeTextCodec()
 
+# Pre-define constants
+_EMPTY_RESULT = ("", 0)
+_PYKM3_NAMES = frozenset(("pykm3", "pykm3codec"))
+_PYKM3JAP_NAMES = frozenset(("pykm3jap", "pykm3japanese"))
+
 
 def register() -> None:
+    """Register the codec search function once."""
     codecs.register(pykm3_search_function)
 
 
-# Python codec registration functions
+@lru_cache(maxsize=128)
 def pykm3_encode(
     text: str, errors: str = "strict", final: bool = False
 ) -> Tuple[bytes, int]:
@@ -32,6 +39,7 @@ def pykm3_encode(
     return encoded, len(text)
 
 
+@lru_cache(maxsize=128)
 def pykm3_jap_encode(
     text: str, errors: str = "strict", final: bool = False
 ) -> Tuple[bytes, int]:
@@ -47,10 +55,10 @@ def pykm3_jap_encode(
     Returns:
         A tuple containing the encoded bytes and the length of the input
     """
-    encoded = _JAPANESE_CODEC.encode(text, errors)
-    return encoded, len(text)
+    return _JAPANESE_CODEC.encode(text, errors), len(text)
 
 
+@lru_cache(maxsize=128)
 def pykm3_decode(
     data: bytes, errors: str = "strict", final: bool = False
 ) -> Tuple[str, int]:
@@ -67,11 +75,11 @@ def pykm3_decode(
         A tuple containing the decoded string and the length of the input
     """
     if not data:
-        return "", 0
-    decoded = _WESTERN_CODEC.decode(data, errors)
-    return decoded, len(data)
+        return _EMPTY_RESULT
+    return _WESTERN_CODEC.decode(data, errors), len(data)
 
 
+@lru_cache(maxsize=128)
 def pykm3_jap_decode(
     data: bytes, errors: str = "strict", final: bool = False
 ) -> Tuple[str, int]:
@@ -88,9 +96,8 @@ def pykm3_jap_decode(
         A tuple containing the decoded string and the length of the input
     """
     if not data:
-        return "", 0
-    decoded = _JAPANESE_CODEC.decode(data, errors)
-    return decoded, len(data)
+        return _EMPTY_RESULT
+    return _JAPANESE_CODEC.decode(data, errors), len(data)
 
 
 class PokeStreamWriter(codecs.StreamWriter):
@@ -152,6 +159,45 @@ def create_stream_reader(stream, errors="strict", japanese=False):
     return PokeStreamReader(stream, decode_func, errors)
 
 
+# Define codec info singletons
+_WEST_CODEC_INFO = codecs.CodecInfo(
+    name="pykm3",
+    encode=pykm3_encode,
+    decode=pykm3_decode,
+    streamreader=lambda stream, errors="strict": create_stream_reader(
+        stream, errors, japanese=False
+    ),
+    streamwriter=lambda stream, errors="strict": create_stream_writer(
+        stream, errors, japanese=False
+    ),
+)
+
+_JAP_CODEC_INFO = codecs.CodecInfo(
+    name="pykm3jap",
+    encode=pykm3_jap_encode,
+    decode=pykm3_jap_decode,
+    streamreader=lambda stream, errors="strict": create_stream_reader(
+        stream, errors, japanese=True
+    ),
+    streamwriter=lambda stream, errors="strict": create_stream_writer(
+        stream, errors, japanese=True
+    ),
+)
+
+
+_JAP_CODEC_INFO = codecs.CodecInfo(
+    name="pykm3jap",
+    encode=lambda text, errors="strict": pykm3_jap_encode(text, errors),
+    decode=lambda data, errors="strict": pykm3_jap_decode(data, errors),
+    streamreader=lambda stream, errors="strict": create_stream_reader(
+        stream, errors, japanese=True
+    ),
+    streamwriter=lambda stream, errors="strict": create_stream_writer(
+        stream, errors, japanese=True
+    ),
+)
+
+
 def pykm3_search_function(encoding: str) -> Optional[codecs.CodecInfo]:
     """
     Search function for the pykm3 codec.
@@ -162,28 +208,8 @@ def pykm3_search_function(encoding: str) -> Optional[codecs.CodecInfo]:
     Returns:
         CodecInfo if the encoding matches, None otherwise
     """
-    if encoding.lower() in ("pykm3", "pykm3codec"):
-        return codecs.CodecInfo(
-            name="pykm3",
-            encode=pykm3_encode,
-            decode=pykm3_decode,
-            streamreader=lambda stream, errors="strict": create_stream_reader(
-                stream, errors, japanese=False
-            ),
-            streamwriter=lambda stream, errors="strict": create_stream_writer(
-                stream, errors, japanese=False
-            ),
-        )
-    elif encoding.lower() in ("pykm3jap", "pykm3japanese"):
-        return codecs.CodecInfo(
-            name="pykm3jap",
-            encode=pykm3_jap_encode,
-            decode=pykm3_jap_decode,
-            streamreader=lambda stream, errors="strict": create_stream_reader(
-                stream, errors, japanese=True
-            ),
-            streamwriter=lambda stream, errors="strict": create_stream_writer(
-                stream, errors, japanese=True
-            ),
-        )
+    if encoding.lower() in _PYKM3_NAMES:
+        return _WEST_CODEC_INFO
+    if encoding.lower() in _PYKM3JAP_NAMES:
+        return _JAP_CODEC_INFO
     return None
