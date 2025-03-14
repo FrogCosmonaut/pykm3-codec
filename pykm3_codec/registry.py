@@ -185,19 +185,6 @@ _JAP_CODEC_INFO = codecs.CodecInfo(
 )
 
 
-_JAP_CODEC_INFO = codecs.CodecInfo(
-    name="pykm3jap",
-    encode=lambda text, errors="strict": pykm3_jap_encode(text, errors),
-    decode=lambda data, errors="strict": pykm3_jap_decode(data, errors),
-    streamreader=lambda stream, errors="strict": create_stream_reader(
-        stream, errors, japanese=True
-    ),
-    streamwriter=lambda stream, errors="strict": create_stream_writer(
-        stream, errors, japanese=True
-    ),
-)
-
-
 def pykm3_search_function(encoding: str) -> Optional[codecs.CodecInfo]:
     """
     Search function for the pykm3 codec.
