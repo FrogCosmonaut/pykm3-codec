@@ -58,14 +58,15 @@ Decoded : ユンゲラー　ハ　サイコキネシス　ヲ　ツカッタ！
 ```python
 from pykm3_codec import WesternPokeTextCodec, JapanesePokeTextCodec
 
-# Western text
 western_codec = WesternPokeTextCodec()
+japanese_codec = JapanesePokeTextCodec()
+
+# Western text
 text = "Hello, trainer!"
 encoded = western_codec.encode(text)  # Output: b'\xc2\xd9\xe0\xe0\xe3\xb8\x00\xe8\xe6\xd5\xdd\xe2\xd9\xe6\xab\xff'
 decoded = western_codec.decode(encoded)  # Output: Hello, trainer!
 
 # Japanese text
-japanese_codec = JapanesePokeTextCodec()
 jp_text = "こんにちは．トレーナー！"
 encoded = japanese_codec.encode(jp_text)  # Output: b'\n.\x16\x11\x1a\xb8dz\xaee\xae\xab\xff'
 decoded = japanese_codec.decode(encoded)  # Output: こんにちは．トレーナー！
@@ -97,8 +98,34 @@ pk_byte.to_int(b"\xff")   # Output: 255
 pk_byte.from_int(513, 2)  # Output: b"\x01\x02"
 ```
 
+### Error handling
+- strict: Raises UnicodeDecodeError / UnicodeEncodeError
+- ignore: Skip the char/byte
+- replace: Replaces the invalid chars with spaces and invalid bytes with 0x00.
+
+```python
+from pykm3_codec import WesternPokeTextCodec
+
+west_codec = WesternPokeTextCodec()
+
+test = "TEST すす"
+test_bytes = b"\x49\x4a"
+
+# Encode
+west_codec.encode(test)  # UnicodeEncodeError: Invalid char: す
+print(west_codec.encode(test, errors="ignore"))   # Output: b'\xce\xbf\xcd\xce\x00\xff'
+print(west_codec.encode(test, errors="replace"))  # Output: b'\xce\xbf\xcd\xce\x00\x00\x00\xff'
+
+# Decode
+west_codec.decode(test_bytes)  # UnicodeDecodeError: Invalid byte: 73
+print(west_codec.decode(test_bytes, errors="ignore"))   # Output  "  "
+print(west_codec.decode(test_bytes, errors="replace"))  # Output  "??"
+```
+> ℹ: Error handling also works with registered "pykm3" and "pykm3jap" codecs.  
+`str.encode("pykm3", errors="ignore")`
+
 ### Notes
-The register method is simple to use, but slower than direct codec usage. Codec objects are ~x2.4 times faster.
+The register method is slower than WesternPokeTextCodec and JapanesePokeTextCodec, direct class usage is ~x2.4 times faster according to benchmarks. For bigger projects maybe is simpler to register the codec once and use it as string.encode/decode("pykm3") along the project instead of passing the codec class to modules. 👽🤷
 
 ## Character Support
 
