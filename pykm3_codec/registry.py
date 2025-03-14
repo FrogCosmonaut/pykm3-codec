@@ -19,7 +19,7 @@ def register() -> None:
     codecs.register(pykm3_search_function)
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=512)
 def pykm3_encode(
     text: str, errors: str = "strict", final: bool = False
 ) -> Tuple[bytes, int]:
@@ -39,7 +39,7 @@ def pykm3_encode(
     return encoded, len(text)
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=512)
 def pykm3_jap_encode(
     text: str, errors: str = "strict", final: bool = False
 ) -> Tuple[bytes, int]:
@@ -58,13 +58,12 @@ def pykm3_jap_encode(
     return _JAPANESE_CODEC.encode(text, errors), len(text)
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=512)
 def pykm3_decode(
     data: bytes, errors: str = "strict", final: bool = False
 ) -> Tuple[str, int]:
     """
-    Decode the given bytes using the Pokémon Generation III format.
-    Auto-detects between Western and Japanese formats.
+    Decode the given bytes using the Pokémon Generation III western format.
 
     Args:
         data: The bytes to decode
@@ -79,13 +78,12 @@ def pykm3_decode(
     return _WESTERN_CODEC.decode(data, errors), len(data)
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=512)
 def pykm3_jap_decode(
     data: bytes, errors: str = "strict", final: bool = False
 ) -> Tuple[str, int]:
     """
     Decode the given bytes using the Pokémon Generation III Japanese format.
-    Always uses Japanese decoding regardless of content.
 
     Args:
         data: The bytes to decode
@@ -108,15 +106,7 @@ class PokeStreamWriter(codecs.StreamWriter):
         self.encode_func = encode_func
 
     def write(self, text):
-        """
-        Write the given text to the stream.
-
-        Args:
-            text: The text to write
-
-        Returns:
-            The number of characters written
-        """
+        """Write the given text to the stream."""
         if not isinstance(text, str):
             text = str(text)
 
@@ -133,16 +123,7 @@ class PokeStreamReader(codecs.StreamReader):
         self.decode_func = decode_func
 
     def decode(self, input, errors="strict"):
-        """
-        Decode input using the pykm3 codec.
-
-        Args:
-            input: The bytes to decode
-            errors: Error handling scheme
-
-        Returns:
-            The decoded string
-        """
+        """Decode input using the pykm3 codec."""
         return self.decode_func(input, errors)
 
 
@@ -186,15 +167,7 @@ _JAP_CODEC_INFO = codecs.CodecInfo(
 
 
 def pykm3_search_function(encoding: str) -> Optional[codecs.CodecInfo]:
-    """
-    Search function for the pykm3 codec.
-
-    Args:
-        encoding: The encoding name
-
-    Returns:
-        CodecInfo if the encoding matches, None otherwise
-    """
+    """Search function for the pykm3 codec."""
     if encoding.lower() in _PYKM3_NAMES:
         return _WEST_CODEC_INFO
     if encoding.lower() in _PYKM3JAP_NAMES:
